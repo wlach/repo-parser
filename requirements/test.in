@@ -1,0 +1,5 @@
+python-frontmatter
+typer
+sphinx
+myst-parser
+jinja2

@@ -1,0 +1,7 @@
+# Services
+
+| Name | Language |
+| ---- | -------- |
+{% for service in services %}
+| [{{ service[0].name }}](https://foo) | {{ service[0].metadata['language'] }} |
+{% endfor %}

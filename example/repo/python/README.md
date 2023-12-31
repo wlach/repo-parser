@@ -7,6 +7,6 @@ type: language
 Python is a dynamic language commonly used for data science and systems
 programming.
 
-```{toc-tree}
+```{toctree}
 docs/best_practices
 ```

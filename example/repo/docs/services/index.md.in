@@ -1,0 +1,16 @@
+# Services
+
+| Name | Language |
+| ---- | -------- |
+{% for service in services %}
+| [{{ service.name }}](./{{service.name}}/index) | {{ service.metadata['language'] }} |
+{% endfor %}
+
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+{% for service in services %}
+./{{service.name}}/index
+{% endfor %}
+```

@@ -1,0 +1,16 @@
+# Libraries
+
+| Name | Language |
+| ---- | -------- |
+{% for library in libraries %}
+| [{{ library.name }}](./{{library.name}}/index) | {{ library.metadata['language'] }} |
+{% endfor %}
+
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+{% for library in libraries %}
+./{{library.name}}/index
+{% endfor %}
+```

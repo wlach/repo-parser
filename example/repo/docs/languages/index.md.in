@@ -1,0 +1,9 @@
+# Languages
+
+Languages used in this hypothetical monorepo:
+
+```{toctree}
+{% for lang in languages %}
+{{ lang.name }}/index
+{% endfor %}
+```

@@ -1,0 +1,10 @@
+python-frontmatter
+typer
+sphinx
+myst-parser
+jinja2
+pip-tools
+pytest
+pytest-unordered
+ruff
+sphinx_rtd_theme

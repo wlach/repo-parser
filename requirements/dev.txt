@@ -73,6 +73,8 @@ pyyaml==6.0.1
     #   python-frontmatter
 requests==2.31.0
     # via sphinx
+ruff==0.1.11
+    # via -r dev.in
 snowballstemmer==2.2.0
     # via sphinx
 sphinx==7.2.6

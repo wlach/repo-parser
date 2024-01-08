@@ -1,0 +1,7 @@
+-r base.in
+
+sphinx
+typer
+myst-parser
+jinja2
+sphinx_rtd_theme

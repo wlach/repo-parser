@@ -1,0 +1,9 @@
+[build]
+command = """
+    pip install -r requirements/dev.txt
+    pip install -e .
+    python example/example_parser.py example/repo example/repo/docs output
+    cd output
+    make html
+"""
+publish = "output/_build/html"

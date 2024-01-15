@@ -6,10 +6,13 @@ Example parser configuration, which is used to generate the example site.
 
 import pathlib
 import shutil
-from typing import Dict, List
+import subprocess
+from typing import Dict, List, Optional
 
 import jinja2
 import typer
+from livereload import Server
+from typing_extensions import Annotated
 
 from repo_parser import DEFAULT_PROCESSORS, Resource, get_resources, scan
 
@@ -109,7 +112,8 @@ def _write_docs(
             _write_files(resource, resource_path)
 
 
-def main(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path):
+def _scan_and_write_docs(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path):
+    print(f"Scanning {dirname} and writing docs to {output_dir}")
     dir = scan(dirname, DEFAULT_PROCESSORS)
     repo = get_resources(dir, DEFAULT_PROCESSORS)
 
@@ -117,6 +121,23 @@ def main(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path
     _rewrite_readmes(repo)
 
     _write_docs(repo, docs_dir, output_dir)
+
+
+def _rebuild_sphinx(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path):
+    _scan_and_write_docs(dirname, docs_dir, output_dir)
+    subprocess.run(["sphinx-build", str(output_dir), str(output_dir / "_build" / "html")])
+
+
+def main(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path,
+         watch: Annotated[Optional[bool], typer.Option("--watch", help="Continuously watch for changes, build, and serve website")] = False):
+
+    if watch:
+        _rebuild_sphinx(dirname, docs_dir, output_dir.resolve())
+        server = Server()
+        server.watch(dirname, lambda: _rebuild_sphinx(dirname, docs_dir, output_dir.resolve()), delay=1)
+        server.serve(root=str(output_dir / "_build" / "html"), port=8000)
+    else:
+        _scan_and_write_docs(dirname, docs_dir, output_dir)
 
 
 if __name__ == "__main__":

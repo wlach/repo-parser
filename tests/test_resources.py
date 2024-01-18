@@ -25,14 +25,14 @@ def test_get_resources(simple_filesystem):
                 ),
                 Resource(
                     name="service-example",
-                    path=PurePath(),
+                    path=PurePath("test/service-example"),
                     type="service",
                     content=None,
                     metadata={"language": "python"},
                     children=[
                         Resource(
                             name="README.md",
-                            path=PurePath("README.md"),
+                            path=PurePath("test/service-example/README.md"),
                             type="file",
                             content="---\ntype: service\nlanguage: python\n---\nThis is a service",
                             metadata={"language": "python"},
@@ -40,7 +40,7 @@ def test_get_resources(simple_filesystem):
                         ),
                         Resource(
                             name="testing.md",
-                            path=PurePath("docs/testing.md"),
+                            path=PurePath("test/service-example/docs/testing.md"),
                             type="file",
                             content="Something about testing",
                             metadata={},

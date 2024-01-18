@@ -31,7 +31,7 @@ def _get_resources(
                     if dir_resource is None:
                         dir_resource = Resource(
                             name=dir.path.name,
-                            path=PurePath(),
+                            path=PurePath(dir.path),
                             type=filetype,
                             metadata=metadata,
                             content=None,

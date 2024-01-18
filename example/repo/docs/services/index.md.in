@@ -1,5 +1,8 @@
 # Services
 
+Services that are in our glorious mono-repo.
+You can also find a CSV of our service index in [services.csv](/_static/services.csv).
+
 | Name | Language |
 | ---- | -------- |
 {% for service in services %}

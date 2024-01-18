@@ -1,0 +1,4 @@
+name,language,path
+{% for service in services %}
+{{ service.name }},{{ service.metadata['language'] }},https://github.com/wlach/repo_parser/tree/main/{{ service.path }}
+{% endfor %}

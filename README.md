@@ -16,4 +16,4 @@ Assumptions:
 
 You can see a demo of a documentation site generated from this repo at:
 
-https://monorepo-parser-demo.netlify.app/
+https://repo-parser-demo.netlify.app/

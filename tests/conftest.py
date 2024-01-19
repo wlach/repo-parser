@@ -15,7 +15,11 @@ def simple_filesystem():
     return Dir(
         path=PurePath("test"),
         files=[
-            File(name="README.md", content="This is a test"),
+            File(
+                name="README.md",
+                src_path=PurePath("README.md"),
+                content="This is a test",
+            ),
         ],
         dirs=[
             Dir(
@@ -23,15 +27,27 @@ def simple_filesystem():
                 files=[
                     File(
                         name="README.md",
+                        src_path=PurePath("test") / "service-example" / "README.md",
                         content="---\ntype: service\nlanguage: python\n---\nThis is a service",
                     ),
-                    File(name="service.py", content="print('hello world')"),
+                    File(
+                        name="service.py",
+                        src_path=PurePath("test") / "service-example" / "service.py",
+                        content="print('hello world')",
+                    ),
                 ],
                 dirs=[
                     Dir(
                         path=PurePath("test") / "service-example" / "docs",
                         files=[
-                            File(name="testing.md", content="Something about testing"),
+                            File(
+                                name="testing.md",
+                                src_path=PurePath("test")
+                                / "service-example"
+                                / "docs"
+                                / "testing.md",
+                                content="Something about testing",
+                            ),
                         ],
                         dirs=[],
                     )

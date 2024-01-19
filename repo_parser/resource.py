@@ -9,6 +9,7 @@ from .processor import Processor
 @dataclass
 class Resource:
     name: str
+    src_path: PurePath
     path: PurePath
     type: str
     metadata: dict
@@ -31,7 +32,8 @@ def _get_resources(
                     if dir_resource is None:
                         dir_resource = Resource(
                             name=dir.path.name,
-                            path=PurePath(dir.path),
+                            src_path=dir.path,
+                            path=PurePath(),
                             type=filetype,
                             metadata=metadata,
                             content=None,
@@ -52,6 +54,7 @@ def _get_resources(
                 Resource(
                     name=file.name,
                     path=parent_path / file.name,
+                    src_path=file.src_path,
                     type="file",
                     metadata=metadata,
                     content=file.content,
@@ -78,6 +81,7 @@ def get_resources(dir: Dir, processors: List[Processor]) -> Resource:
     return Resource(
         name=dir.path.name,
         path=PurePath(),
+        src_path=dir.path,
         type="repo",
         metadata={},
         children=_get_resources(dir, PurePath(), processors),

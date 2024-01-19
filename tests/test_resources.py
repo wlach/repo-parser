@@ -10,6 +10,7 @@ def test_get_resources(simple_filesystem):
     assert get_resources(simple_filesystem, DEFAULT_PROCESSORS) == Resource(
         name="test",
         path=PurePath(),
+        src_path=PurePath("test"),
         type="repo",
         metadata={},
         content=None,
@@ -18,6 +19,7 @@ def test_get_resources(simple_filesystem):
                 Resource(
                     name="README.md",
                     path=PurePath("README.md"),
+                    src_path=PurePath("README.md"),
                     type="file",
                     content="This is a test",
                     metadata={},
@@ -25,14 +27,16 @@ def test_get_resources(simple_filesystem):
                 ),
                 Resource(
                     name="service-example",
-                    path=PurePath("test/service-example"),
+                    path=PurePath(),
+                    src_path=PurePath("test/service-example"),
                     type="service",
                     content=None,
                     metadata={"language": "python"},
                     children=[
                         Resource(
                             name="README.md",
-                            path=PurePath("test/service-example/README.md"),
+                            path=PurePath("README.md"),
+                            src_path=PurePath("test/service-example/README.md"),
                             type="file",
                             content="---\ntype: service\nlanguage: python\n---\nThis is a service",
                             metadata={"language": "python"},
@@ -40,7 +44,8 @@ def test_get_resources(simple_filesystem):
                         ),
                         Resource(
                             name="testing.md",
-                            path=PurePath("test/service-example/docs/testing.md"),
+                            path=PurePath("docs/testing.md"),
+                            src_path=PurePath("test/service-example/docs/testing.md"),
                             type="file",
                             content="Something about testing",
                             metadata={},

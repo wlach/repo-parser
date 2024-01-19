@@ -1,5 +1,6 @@
 import pathlib
 from dataclasses import dataclass
+from pathlib import PurePath
 from typing import List, Optional
 
 from .processor import Processor
@@ -8,6 +9,7 @@ from .processor import Processor
 @dataclass
 class File:
     name: str
+    src_path: PurePath
     content: Optional[str]
 
 
@@ -34,7 +36,13 @@ def scan(path: pathlib.Path, processors: List[Processor]) -> Dir:
             for processor in processors:
                 if processor.pattern.search(str(entry)):
                     content = entry.read_text() if processor.read_content else None
-                    dir.files.append(File(name=entry.name, content=content))
+                    dir.files.append(
+                        File(
+                            name=entry.name,
+                            src_path=(path / entry.name),
+                            content=content,
+                        )
+                    )
         elif entry.is_dir():
             dir.dirs.append(scan(path / entry.name, processors))
 

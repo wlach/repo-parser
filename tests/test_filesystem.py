@@ -20,7 +20,11 @@ def test_scan():
         assert scan(tmpdir, DEFAULT_PROCESSORS) == Dir(
             path=PurePath(tmpdir),
             files=[
-                File(name="README.md", content="This is a test"),
+                File(
+                    name="README.md",
+                    src_path=(PurePath(tmpdir) / "README.md"),
+                    content="This is a test",
+                ),
             ],
             dirs=[
                 Dir(
@@ -28,6 +32,9 @@ def test_scan():
                     files=[
                         File(
                             name="README.md",
+                            src_path=(
+                                PurePath(tmpdir) / "service-example" / "README.md"
+                            ),
                             content="---\ntype: service\nlanguage: python\n---\nThis is a service",
                         ),
                     ],

@@ -17,3 +17,10 @@ Assumptions:
 You can see a demo of a documentation site generated from this repo at:
 
 https://repo-parser-demo.netlify.app/
+
+## Local development
+
+You can experiment with the local demo by running `make example`.
+It should live-reload as you make changes in the `example/repo` directory.
+
+For other tasks, look at the (very simple) `Makefile` in the root directory.

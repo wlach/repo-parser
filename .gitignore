@@ -1,6 +1,6 @@
 __pycache__/
+output
 venv
 .vscode/
 .ruff_cache
 .pytest_cache
-

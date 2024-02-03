@@ -4,11 +4,12 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "repo-parser"
-authors = [{name = "William Lachance", email = "wlach@protonmail.com"}]
+authors = [{ name = "William Lachance", email = "wlach@protonmail.com" }]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+dependencies = ["GitPython"]
 
 [project.urls]
 Home = "https://github.com/wlach/repo-parser"

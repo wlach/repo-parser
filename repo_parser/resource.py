@@ -82,6 +82,14 @@ def _get_resources(
 
 
 def get_resources(dir: Dir, processors: List[Processor]) -> Resource:
+    """
+    Gets a list of resources from a scanned filesystem.
+
+    Will process each file in the filesystem with the provided processors,
+    note that order matters: the first processor that matches a given file
+    will be used and no further processors will be applied after that.
+    """
+
     return Resource(
         name=dir.path.name,
         path=PurePath(),

@@ -35,6 +35,11 @@ def simple_filesystem():
                         src_path=PurePath("test") / "service-example" / "service.py",
                         content="print('hello world')",
                     ),
+                    File(
+                        name="Makefile",
+                        src_path=PurePath("test") / "service-example" / "Makefile",
+                        content=None,  # Presuming Makefile content is not read
+                    ),
                 ],
                 dirs=[
                     Dir(

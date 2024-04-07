@@ -1,13 +1,20 @@
+import re
 from pathlib import PurePath
 
 from pytest_unordered import unordered
 
-from repo_parser.processor import DEFAULT_PROCESSORS
+from repo_parser.processor import DEFAULT_PROCESSORS, Processor
 from repo_parser.resource import Resource, get_resources
 
 
 def test_get_resources(simple_filesystem):
-    assert get_resources(simple_filesystem, DEFAULT_PROCESSORS) == Resource(
+    processors = [
+        *DEFAULT_PROCESSORS,
+        Processor(
+            re.compile(r"Makefile"), lambda content: ("file", {}, content), False
+        ),
+    ]
+    assert get_resources(simple_filesystem, processors) == Resource(
         name="test",
         path=PurePath(),
         src_path=PurePath("test"),
@@ -40,6 +47,15 @@ def test_get_resources(simple_filesystem):
                             type="file",
                             content="---\ntype: service\nlanguage: python\n---\nThis is a service",
                             metadata={"language": "python"},
+                            children=[],
+                        ),
+                        Resource(
+                            name="Makefile",
+                            path=PurePath("Makefile"),
+                            src_path=PurePath("test/service-example/Makefile"),
+                            type="file",
+                            content=None,
+                            metadata={},
                             children=[],
                         ),
                         Resource(

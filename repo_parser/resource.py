@@ -27,7 +27,7 @@ def _get_resources(
     for file in dir.files:
         for processor in processors:
             if processor.pattern.search(file.name):
-                filetype, metadata, content = processor.process(file.content)
+                filetype, metadata, _ = processor.process(file.content or "")
                 if filetype != "file":
                     if dir_resource is None:
                         dir_resource = Resource(
@@ -49,18 +49,22 @@ def _get_resources(
     # do a second pass to find all the child resources, placing
     # their paths relative to the parent
     for file in dir.files:
-        if processor.pattern.search(file.name):
-            child_resources.append(
-                Resource(
-                    name=file.name,
-                    path=parent_path / file.name,
-                    src_path=file.src_path,
-                    type="file",
-                    metadata=metadata,
-                    content=file.content,
-                    children=[],
+        for processor in processors:
+            if processor.pattern.search(file.name):
+                _, metadata, _ = processor.process(file.content or "")
+                child_resources.append(
+                    Resource(
+                        name=file.name,
+                        path=parent_path / file.name,
+                        src_path=file.src_path,
+                        type="file",
+                        metadata=metadata,
+                        content=file.content,
+                        children=[],
+                    )
                 )
-            )
+                # Will only match once!
+                break
 
     for subdir in dir.dirs:
         child_resources.extend(

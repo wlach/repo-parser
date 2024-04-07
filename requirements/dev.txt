@@ -7,23 +7,25 @@
 #
 -r preview.txt
 -r test.txt
-build==1.0.3
+build==1.2.1
     # via pip-tools
 livereload==2.6.3
     # via -r requirements/dev.in
 pip-compile-multi==2.6.3
     # via -r requirements/dev.in
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via pip-compile-multi
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 six==1.16.0
     # via livereload
 toposort==1.10
     # via pip-compile-multi
 tornado==6.4
     # via livereload
-wheel==0.42.0
+wheel==0.43.0
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:

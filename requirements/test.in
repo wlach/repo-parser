@@ -2,4 +2,5 @@
 
 pytest
 pytest-unordered
+python-frontmatter
 ruff

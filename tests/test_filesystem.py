@@ -5,10 +5,9 @@ import git
 from pytest_unordered import unordered
 
 from repo_parser.filesystem import Dir, File, scan
-from repo_parser.processor import DEFAULT_PROCESSORS
 
 
-def test_scan():
+def test_scan(default_processors):
     # create a temporary test directory with a bunch of content
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
@@ -35,7 +34,7 @@ def test_scan():
         repo.index.commit("initial commit")
 
         # scan the directory
-        assert scan(tmpdir, DEFAULT_PROCESSORS) == Dir(
+        assert scan(tmpdir, default_processors) == Dir(
             path=PurePath(tmpdir),
             files=[
                 File(
@@ -66,7 +65,7 @@ def test_scan():
         )
 
         # Test only looking in one subdirectory
-        assert scan(tmpdir, DEFAULT_PROCESSORS, subdirs=["service-example1"]) == Dir(
+        assert scan(tmpdir, default_processors, subdirs=["service-example1"]) == Dir(
             path=PurePath(tmpdir),
             files=[],
             dirs=[

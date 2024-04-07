@@ -5,16 +5,27 @@ Example parser configuration, which is used to generate the example site.
 """
 
 import pathlib
+import re
 import shutil
 import subprocess
 from typing import Dict, List, Optional
 
+import frontmatter
 import jinja2
 import typer
 from livereload import Server
 from typing_extensions import Annotated
 
-from repo_parser import DEFAULT_PROCESSORS, Resource, get_resources, scan
+from repo_parser import Processor, Resource, get_resources, scan
+
+
+def _process_markdown(file_contents: str):
+    metadata, _ = frontmatter.parse(file_contents)
+
+    filetype = metadata.get("type", "file")
+    metadata.pop("type", None)  # remove "type" from the metadata
+
+    return filetype, metadata, file_contents
 
 
 def _augment_metadata(resource: Resource, extra_metadata: Dict):
@@ -112,10 +123,17 @@ def _write_docs(
             _write_files(resource, resource_path)
 
 
-def _scan_and_write_docs(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path):
+def _scan_and_write_docs(
+    dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path
+):
     print(f"Scanning {dirname} and writing docs to {output_dir}")
-    dir = scan(dirname, DEFAULT_PROCESSORS)
-    repo = get_resources(dir, DEFAULT_PROCESSORS)
+
+    processors = [
+        Processor(re.compile("\.md$"), _process_markdown, True),
+    ]
+
+    dir = scan(dirname, processors)
+    repo = get_resources(dir, processors)
 
     _augment_metadata(repo, {})
     _rewrite_readmes(repo)
@@ -123,18 +141,35 @@ def _scan_and_write_docs(dirname: pathlib.Path, docs_dir: pathlib.Path, output_d
     _write_docs(repo, docs_dir, output_dir)
 
 
-def _rebuild_sphinx(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path):
+def _rebuild_sphinx(
+    dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path
+):
     _scan_and_write_docs(dirname, docs_dir, output_dir)
-    subprocess.run(["sphinx-build", str(output_dir), str(output_dir / "_build" / "html")])
+    subprocess.run(
+        ["sphinx-build", str(output_dir), str(output_dir / "_build" / "html")]
+    )
 
 
-def main(dirname: pathlib.Path, docs_dir: pathlib.Path, output_dir: pathlib.Path,
-         watch: Annotated[Optional[bool], typer.Option("--watch", help="Continuously watch for changes, build, and serve website")] = False):
+def main(
+    dirname: pathlib.Path,
+    docs_dir: pathlib.Path,
+    output_dir: pathlib.Path,
+    watch: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--watch", help="Continuously watch for changes, build, and serve website"
+        ),
+    ] = False,
+):
 
     if watch:
         _rebuild_sphinx(dirname, docs_dir, output_dir.resolve())
         server = Server()
-        server.watch(dirname, lambda: _rebuild_sphinx(dirname, docs_dir, output_dir.resolve()), delay=1)
+        server.watch(
+            dirname,
+            lambda: _rebuild_sphinx(dirname, docs_dir, output_dir.resolve()),
+            delay=1,
+        )
         server.serve(root=str(output_dir / "_build" / "html"), port=8000)
     else:
         _scan_and_write_docs(dirname, docs_dir, output_dir)

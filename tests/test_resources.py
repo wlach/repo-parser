@@ -3,13 +3,13 @@ from pathlib import PurePath
 
 from pytest_unordered import unordered
 
-from repo_parser.processor import DEFAULT_PROCESSORS, Processor
+from repo_parser.processor import Processor
 from repo_parser.resource import Resource, get_resources
 
 
-def test_get_resources(simple_filesystem):
+def test_get_resources(simple_filesystem, default_processors):
     processors = [
-        *DEFAULT_PROCESSORS,
+        *default_processors,
         Processor(
             re.compile(r"Makefile"), lambda content: ("file", {}, content), False
         ),

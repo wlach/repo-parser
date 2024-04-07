@@ -1,8 +1,25 @@
+import re
 from pathlib import Path, PurePath
 
+import frontmatter
 import pytest
 
-from repo_parser.filesystem import Dir, File
+from repo_parser.filesystem import Dir, File, Processor
+
+
+@pytest.fixture
+def default_processors():
+    def _process_markdown(file_contents: str):
+        metadata, _ = frontmatter.parse(file_contents)
+
+        filetype = metadata.get("type", "file")
+        metadata.pop("type", None)  # remove "type" from the metadata
+
+        return filetype, metadata, file_contents
+
+    return [
+        Processor(re.compile("\.md$"), _process_markdown, True),
+    ]
 
 
 @pytest.fixture

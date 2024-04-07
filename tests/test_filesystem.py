@@ -64,3 +64,24 @@ def test_scan():
                 ]
             ),
         )
+
+        # Test only looking in one subdirectory
+        assert scan(tmpdir, DEFAULT_PROCESSORS, subdirs=["service-example1"]) == Dir(
+            path=PurePath(tmpdir),
+            files=[],
+            dirs=[
+                Dir(
+                    path=PurePath(tmpdir) / "service-example1",
+                    files=[
+                        File(
+                            name="README.md",
+                            src_path=(
+                                PurePath(tmpdir) / "service-example1" / "README.md"
+                            ),
+                            content="---\ntype: service\nlanguage: python\n---\nThis is service 1",
+                        ),
+                    ],
+                    dirs=[],
+                )
+            ],
+        )

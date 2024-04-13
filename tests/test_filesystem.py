@@ -84,3 +84,35 @@ def test_scan(default_processors):
                 )
             ],
         )
+
+        # Test pattern ignore
+        assert scan(
+            tmpdir, default_processors, ignore_patterns=[r"service-example1"]
+        ) == Dir(
+            path=PurePath(tmpdir),
+            files=[
+                File(
+                    name="README.md",
+                    src_path=(PurePath(tmpdir) / "README.md"),
+                    content="This is a test",
+                ),
+            ],
+            dirs=unordered(
+                [
+                    Dir(
+                        path=PurePath(tmpdir) / subdir,
+                        files=[
+                            File(
+                                name="README.md",
+                                src_path=(PurePath(tmpdir) / subdir / "README.md"),
+                                content=f"---\ntype: service\nlanguage: python\n---\n{readme_content}",
+                            ),
+                        ],
+                        dirs=[],
+                    )
+                    for (subdir, readme_content) in [
+                        ("service-example2", "This is service 2"),
+                    ]
+                ]
+            ),
+        )

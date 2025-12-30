@@ -10,6 +10,22 @@ license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 dependencies = ["GitPython"]
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = [
+    "jinja2",
+    "livereload",
+    "myst-parser",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "pytest",
+    "pytest-unordered",
+    "python-frontmatter",
+    "ruff",
+    "typer",
+]
+
 
 [project.urls]
 Home = "https://github.com/wlach/repo-parser"

@@ -1,6 +1,0 @@
--r base.in
-
-pytest
-pytest-unordered
-python-frontmatter
-ruff

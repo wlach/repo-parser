@@ -1,5 +1,0 @@
--r test.in
--r preview.in
-
-pip-compile-multi
-livereload

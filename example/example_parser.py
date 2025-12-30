@@ -161,7 +161,6 @@ def main(
         ),
     ] = False,
 ):
-
     if watch:
         _rebuild_sphinx(dirname, docs_dir, output_dir.resolve())
         server = Server()

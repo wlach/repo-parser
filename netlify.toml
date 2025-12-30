@@ -1,9 +1,8 @@
 [build]
 command = """
-    pip install -r requirements/dev.txt
-    pip install -e .
-    python example/example_parser.py . example/repo/docs output
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    uv run example/example_parser.py . example/repo/docs output
     cd output
-    make html
+    PATH=../.venv/bin:$PATH make html
 """
 publish = "output/_build/html"

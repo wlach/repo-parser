@@ -77,7 +77,7 @@ def _write_files(resource: Resource, output_dir: pathlib.Path) -> None:
 
             # Parse existing frontmatter from content
             post = frontmatter.loads(child.content or "")
-            
+
             # Merge in metadata from processing and add last_updated
             post.metadata.update(child.metadata)
             post.metadata["last_updated"] = child.last_modified.strftime("%Y-%m-%d")

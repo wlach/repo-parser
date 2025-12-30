@@ -49,7 +49,7 @@ def test_directory_last_modified_from_children(simple_filesystem, default_proces
 
     # Find the service-example directory resource
     service = next(r for r in result.children if r.name == "service-example")
-    
+
     # The service directory's last_modified should be the max of all its children
     # (including the README.md that defined it as a service)
     child_dates = [child.last_modified for child in service.children]
@@ -73,10 +73,10 @@ def test_repo_last_modified_from_all_descendants(simple_filesystem, default_proc
         for child in resource.children:
             dates.extend(collect_dates(child))
         return dates
-    
+
     all_dates = []
     for child in result.children:
         all_dates.extend(collect_dates(child))
-    
+
     # The repo's last_modified should be the max of all its descendants
     assert result.last_modified == max(all_dates)

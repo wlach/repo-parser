@@ -124,5 +124,7 @@ def get_resources(dir: Dir, processors: List[Processor], repo: git.Repo) -> Reso
         metadata={},
         children=children,
         content=None,
-        last_modified=max(child.last_modified for child in children) if children else datetime.now(),
+        last_modified=max(child.last_modified for child in children)
+        if children
+        else datetime.now(),
     )

@@ -103,7 +103,7 @@ def scan(
 
     This step does not do any post-processing of the files, though their
     content is read in if one of their processors requires it.
-    
+
     Returns a tuple of (Dir, git.Repo) for further processing.
     """
     repo = git.Repo(path, search_parent_directories=True)

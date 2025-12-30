@@ -66,7 +66,9 @@ def test_scan(default_processors):
         )
 
         # Test only looking in one subdirectory
-        result, returned_repo = scan(tmpdir, default_processors, subdirs=["service-example1"])
+        result, returned_repo = scan(
+            tmpdir, default_processors, subdirs=["service-example1"]
+        )
         assert result == Dir(
             path=PurePath(tmpdir),
             files=[],

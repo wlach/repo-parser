@@ -34,7 +34,7 @@ def simple_filesystem():
     # Create a temporary directory with a git repo and files
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
-        
+
         # Create files
         (tmpdir / "README.md").write_text("This is a test")
         (tmpdir / "service-example").mkdir()
@@ -44,13 +44,15 @@ def simple_filesystem():
         (tmpdir / "service-example" / "service.py").write_text("print('hello world')")
         (tmpdir / "service-example" / "Makefile").write_text("all:\n\techo 'test'")
         (tmpdir / "service-example" / "docs").mkdir()
-        (tmpdir / "service-example" / "docs" / "testing.md").write_text("Something about testing")
-        
+        (tmpdir / "service-example" / "docs" / "testing.md").write_text(
+            "Something about testing"
+        )
+
         # Initialize git repo
         repo = git.Repo.init(tmpdir)
         repo.index.add(["."])
         repo.index.commit("initial commit")
-        
+
         # Build the Dir structure
         dir = Dir(
             path=PurePath("test"),
@@ -72,7 +74,9 @@ def simple_filesystem():
                         ),
                         File(
                             name="service.py",
-                            src_path=PurePath("test") / "service-example" / "service.py",
+                            src_path=PurePath("test")
+                            / "service-example"
+                            / "service.py",
                             content="print('hello world')",
                         ),
                         File(
@@ -100,5 +104,5 @@ def simple_filesystem():
                 )
             ],
         )
-        
+
         yield dir, repo

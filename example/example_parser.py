@@ -74,7 +74,17 @@ def _write_files(resource: Resource, output_dir: pathlib.Path) -> None:
             # for every file, even if it's not needed (this is required because
             # file resources may live under a deeply nested subpath)
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(child.content)
+
+            # Parse existing frontmatter from content
+            post = frontmatter.loads(child.content or "")
+            
+            # Merge in metadata from processing and add last_updated
+            post.metadata.update(child.metadata)
+            post.metadata["last_updated"] = child.last_modified.strftime("%Y-%m-%d")
+
+            # Write with merged frontmatter
+            content = frontmatter.dumps(post)
+            file_path.write_text(content)
 
 
 def _write_docs(
@@ -129,16 +139,16 @@ def _scan_and_write_docs(
     print(f"Scanning {dirname} and writing docs to {output_dir}")
 
     processors = [
-        Processor(re.compile("\.md$"), _process_markdown, True),
+        Processor(re.compile(r"\.md$"), _process_markdown, True),
     ]
 
-    dir = scan(dirname, processors)
-    repo = get_resources(dir, processors)
+    dir, repo = scan(dirname, processors)
+    root_resource = get_resources(dir, processors, repo)
 
-    _augment_metadata(repo, {})
-    _rewrite_readmes(repo)
+    _augment_metadata(root_resource, {})
+    _rewrite_readmes(root_resource)
 
-    _write_docs(repo, docs_dir, output_dir)
+    _write_docs(root_resource, docs_dir, output_dir)
 
 
 def _rebuild_sphinx(

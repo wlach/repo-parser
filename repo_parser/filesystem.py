@@ -90,7 +90,7 @@ def scan(
     ignore_patterns: Optional[List[re.Pattern]] = None,
     subdirs: Optional[List[pathlib.Path]] = None,
     max_depth: Optional[int] = None,
-) -> Dir:
+) -> tuple[Dir, git.Repo]:
     """
     Scans a GitHub repository for files and subdirectories, returning a data
     structure representing the directory tree.
@@ -103,8 +103,10 @@ def scan(
 
     This step does not do any post-processing of the files, though their
     content is read in if one of their processors requires it.
+    
+    Returns a tuple of (Dir, git.Repo) for further processing.
     """
-    repo = git.Repo(path)
+    repo = git.Repo(path, search_parent_directories=True)
 
     # if subdirs, just scan each one and return the results
     if subdirs:
@@ -115,7 +117,7 @@ def scan(
                     path / subdir, processors, ignore_patterns or [], repo, 0, max_depth
                 )
             )
-        return dir
+        return dir, repo
 
     # otherwise read everything up to max_depth
-    return _scan(path, processors, ignore_patterns or [], repo, 0, max_depth)
+    return _scan(path, processors, ignore_patterns or [], repo, 0, max_depth), repo

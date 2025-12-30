@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import PurePath
 from typing import List, Optional
+
+import git
 
 from .filesystem import Dir
 from .processor import Processor
@@ -15,10 +18,20 @@ class Resource:
     metadata: dict
     content: Optional[str]
     children: List["Resource"]
+    last_modified: datetime
+
+
+def _get_last_modified(repo: git.Repo, file_path: PurePath) -> datetime:
+    """Get the last modification date from git as a datetime object"""
+    commits = list(repo.iter_commits(paths=str(file_path), max_count=1))
+    if commits:
+        return datetime.fromtimestamp(commits[0].committed_date)
+
+    return datetime.now()
 
 
 def _get_resources(
-    dir: Dir, parent_path: PurePath, processors: List[Processor]
+    dir: Dir, parent_path: PurePath, processors: List[Processor], repo: git.Repo
 ) -> List[Resource]:
     child_resources: List[Resource] = []
     dir_resource: Optional[Resource] = None
@@ -38,6 +51,7 @@ def _get_resources(
                             metadata=metadata,
                             content=None,
                             children=[],
+                            last_modified=datetime.now(),  # Placeholder, will be computed from children
                         )
                         # parent path is now the dir_resource
                         parent_path = dir_resource.path
@@ -61,6 +75,7 @@ def _get_resources(
                         metadata=metadata,
                         content=file.content,
                         children=[],
+                        last_modified=_get_last_modified(repo, file.src_path),
                     )
                 )
                 # Will only match once!
@@ -68,7 +83,7 @@ def _get_resources(
 
     for subdir in dir.dirs:
         child_resources.extend(
-            _get_resources(subdir, parent_path / subdir.path.name, processors)
+            _get_resources(subdir, parent_path / subdir.path.name, processors, repo)
         )
 
     # if this directory did not define a new resource, append any newly
@@ -78,10 +93,19 @@ def _get_resources(
 
     # otherwise, add the child resources to the dir_resource, and return that
     dir_resource.children = child_resources
+
+    # Update dir_resource last_modified to be the most recent from all children
+    # (which includes all files in this directory, even the one that defined it)
+    if child_resources:
+        dir_resource.last_modified = max(
+            child.last_modified for child in child_resources
+        )
+    # If no children, keep the placeholder datetime.now()
+
     return [dir_resource]
 
 
-def get_resources(dir: Dir, processors: List[Processor]) -> Resource:
+def get_resources(dir: Dir, processors: List[Processor], repo: git.Repo) -> Resource:
     """
     Gets a list of resources from a scanned filesystem.
 
@@ -90,12 +114,17 @@ def get_resources(dir: Dir, processors: List[Processor]) -> Resource:
     will be used and no further processors will be applied after that.
     """
 
+    children = _get_resources(dir, PurePath(), processors, repo)
+
     return Resource(
         name=dir.path.name,
         path=PurePath(),
         src_path=dir.path,
         type="repo",
         metadata={},
-        children=_get_resources(dir, PurePath(), processors),
+        children=children,
         content=None,
+        last_modified=max(child.last_modified for child in children)
+        if children
+        else datetime.now(),
     )

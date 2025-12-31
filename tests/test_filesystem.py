@@ -34,7 +34,7 @@ def test_scan(default_processors):
         repo.index.commit("initial commit")
 
         # scan the directory
-        result, returned_repo = scan(tmpdir, default_processors)
+        result, _returned_repo = scan(tmpdir, default_processors)
         assert result == Dir(
             path=PurePath(tmpdir),
             files=[
@@ -66,7 +66,7 @@ def test_scan(default_processors):
         )
 
         # Test only looking in one subdirectory
-        result, returned_repo = scan(
+        result, _returned_repo = scan(
             tmpdir, default_processors, subdirs=["service-example1"]
         )
         assert result == Dir(
@@ -90,7 +90,7 @@ def test_scan(default_processors):
         )
 
         # Test pattern ignore
-        result, returned_repo = scan(
+        result, _returned_repo = scan(
             tmpdir, default_processors, ignore_patterns=[r"service-example1"]
         )
         assert result == Dir(

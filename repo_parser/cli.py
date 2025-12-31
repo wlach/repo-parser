@@ -5,7 +5,7 @@ Command-line interface for repo-parser.
 import os
 import pathlib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import resources
 
 import git
@@ -32,7 +32,6 @@ def _get_git_author() -> str:
         )
         name = config.get_value("user", "name")
         email = config.get_value("user", "email")
-        return f"{name} <{email}>"
     except (KeyError, ValueError, OSError, git.GitCommandNotFound):
         # Config file doesn't exist, user.name/email not set, or git not installed
         typer.echo(
@@ -40,6 +39,8 @@ def _get_git_author() -> str:
             err=True,
         )
         return "Unknown"
+    else:
+        return f"{name} <{email}>"
 
 
 def _get_repo_root() -> pathlib.Path:
@@ -92,8 +93,7 @@ def _strip_html_comments(text: str) -> str:
     # Then collapse multiple consecutive blank lines (3+) to exactly 2 newlines
     text = re.sub(r"\n{3,}", "\n\n", text)
     # Finally, strip any leading/trailing whitespace from the entire document
-    text = text.strip()
-    return text
+    return text.strip()
 
 
 @idr_app.command("new")
@@ -118,7 +118,7 @@ def idr_new(
     idrs_dir.mkdir(exist_ok=True)
 
     # Generate timestamp in UTC
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M")
 
     # Slugify the title
     slug = slugify(title)

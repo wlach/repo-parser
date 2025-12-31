@@ -32,4 +32,18 @@ dev = [
 Home = "https://github.com/wlach/repo-parser"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "B", "I"]
+select = [
+    "E4",  # pycodestyle errors (subset)
+    "E7",  # pycodestyle errors (subset)
+    "E9",  # pycodestyle errors (subset)
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "TRY", # tryceratops (exception handling)
+    "UP",  # pyupgrade (modern Python syntax)
+    "RUF", # Ruff-specific rules
+    "C4",  # flake8-comprehensions
+    "PTH", # flake8-use-pathlib
+    "RET", # flake8-return
+    "ARG", # flake8-unused-arguments
+]

@@ -27,7 +27,7 @@ class TestGetGitAuthor:
         """Test getting author from git config."""
         with patch("repo_parser.cli.git.GitConfigParser") as mock_parser:
             mock_instance = mock_parser.return_value
-            mock_instance.get_value.side_effect = lambda section, key: {
+            mock_instance.get_value.side_effect = lambda _section, key: {
                 "name": "Test Author",
                 "email": "test@example.com",
             }[key]

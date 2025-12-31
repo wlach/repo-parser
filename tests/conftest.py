@@ -55,7 +55,7 @@ def simple_filesystem():
 
         # Build the Dir structure
         dir = Dir(
-            path=PurePath("test"),
+            path=Path("test"),
             files=[
                 File(
                     name="README.md",
@@ -65,7 +65,7 @@ def simple_filesystem():
             ],
             dirs=[
                 Dir(
-                    path=PurePath("test") / "service-example",
+                    path=Path("test") / "service-example",
                     files=[
                         File(
                             name="README.md",
@@ -87,7 +87,7 @@ def simple_filesystem():
                     ],
                     dirs=[
                         Dir(
-                            path=PurePath("test") / "service-example" / "docs",
+                            path=Path("test") / "service-example" / "docs",
                             files=[
                                 File(
                                     name="testing.md",

@@ -13,6 +13,7 @@ Core architecture:
 - Run any python commands via `uv run python ...`
 - Run linting via `uv run ruff check .` from root
 - Auto-fix linting issues via `uv run ruff check --fix .` from root
+- Run type-checking via `uv run ty check` from root
 - Run format checking via `uv run ruff format --check .` from root
 - Auto-format code via `uv run ruff format .` from root
 - Run tests via `uv run pytest` from root. In general just run all the tests. They are extremely fast.

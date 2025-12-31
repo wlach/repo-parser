@@ -1,3 +1,4 @@
+import re
 import tempfile
 from pathlib import Path, PurePath
 
@@ -36,7 +37,7 @@ def test_scan(default_processors):
         # scan the directory
         result, _returned_repo = scan(tmpdir, default_processors)
         assert result == Dir(
-            path=PurePath(tmpdir),
+            path=Path(tmpdir),
             files=[
                 File(
                     name="README.md",
@@ -47,7 +48,7 @@ def test_scan(default_processors):
             dirs=unordered(
                 [
                     Dir(
-                        path=PurePath(tmpdir) / subdir,
+                        path=Path(tmpdir) / subdir,
                         files=[
                             File(
                                 name="README.md",
@@ -67,14 +68,14 @@ def test_scan(default_processors):
 
         # Test only looking in one subdirectory
         result, _returned_repo = scan(
-            tmpdir, default_processors, subdirs=["service-example1"]
+            tmpdir, default_processors, subdirs=[Path("service-example1")]
         )
         assert result == Dir(
-            path=PurePath(tmpdir),
+            path=Path(tmpdir),
             files=[],
             dirs=[
                 Dir(
-                    path=PurePath(tmpdir) / "service-example1",
+                    path=Path(tmpdir) / "service-example1",
                     files=[
                         File(
                             name="README.md",
@@ -91,10 +92,12 @@ def test_scan(default_processors):
 
         # Test pattern ignore
         result, _returned_repo = scan(
-            tmpdir, default_processors, ignore_patterns=[r"service-example1"]
+            tmpdir,
+            default_processors,
+            ignore_patterns=[re.compile(r"service-example1")],
         )
         assert result == Dir(
-            path=PurePath(tmpdir),
+            path=Path(tmpdir),
             files=[
                 File(
                     name="README.md",
@@ -105,7 +108,7 @@ def test_scan(default_processors):
             dirs=unordered(
                 [
                     Dir(
-                        path=PurePath(tmpdir) / subdir,
+                        path=Path(tmpdir) / subdir,
                         files=[
                             File(
                                 name="README.md",

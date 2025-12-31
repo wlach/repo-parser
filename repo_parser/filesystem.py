@@ -30,7 +30,7 @@ def _scan(
     depth: int,
     max_depth: int | None,
 ) -> Dir:
-    dir = Dir(path=pathlib.PurePath(path), files=[], dirs=[])
+    dir = Dir(path=path, files=[], dirs=[])
     entries = list(path.iterdir())
     if not entries:
         return dir
@@ -107,7 +107,7 @@ def scan(
 
     # if subdirs, just scan each one and return the results
     if subdirs:
-        dir = Dir(path=pathlib.PurePath(path), files=[], dirs=[])
+        dir = Dir(path=path, files=[], dirs=[])
         for subdir in subdirs:
             dir.dirs.append(
                 _scan(

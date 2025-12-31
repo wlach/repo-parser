@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 
@@ -9,5 +10,5 @@ class Processor:
     """
 
     pattern: re.Pattern
-    process: callable
+    process: Callable
     read_content: bool

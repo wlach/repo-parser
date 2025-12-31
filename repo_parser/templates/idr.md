@@ -8,7 +8,7 @@ To create IDRs without these comments:
 
 # {{ title }}
 
-Author: {{ author }}
+Owner: {{ author }}
 
 ## Overview
 

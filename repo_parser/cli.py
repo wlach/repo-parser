@@ -20,21 +20,23 @@ app.add_typer(idr_app, name="idr")
 
 def _get_git_author() -> str:
     """
-    Get the author name from git config.
+    Get the author name and email from git config.
 
     Returns:
-        Author name from git config user.name, or "Unknown" if not set.
+        Author in format "Name <email>", or "Unknown" if not set.
     """
     try:
         # Read from global git config (doesn't require being in a repo)
         config = git.GitConfigParser(
             [git.config.get_config_path("global")], read_only=True
         )
-        return config.get_value("user", "name")
+        name = config.get_value("user", "name")
+        email = config.get_value("user", "email")
+        return f"{name} <{email}>"
     except (KeyError, ValueError, OSError, git.GitCommandNotFound):
-        # Config file doesn't exist, user.name not set, or git not installed
+        # Config file doesn't exist, user.name/email not set, or git not installed
         typer.echo(
-            "Warning: Could not read git config user.name, using 'Unknown' as author",
+            "Warning: Could not read git config user.name/email, using 'Unknown' as author",
             err=True,
         )
         return "Unknown"

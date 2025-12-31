@@ -9,8 +9,8 @@ from .processor import Processor
 from .resource import Resource, get_resources
 
 __all__ = [
-    "scan",
-    "get_resources",
-    "Resource",
     "Processor",
+    "Resource",
+    "get_resources",
+    "scan",
 ]

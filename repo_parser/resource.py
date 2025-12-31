@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import PurePath
-from typing import List, Optional
 
 import git
 
@@ -16,8 +15,8 @@ class Resource:
     path: PurePath
     type: str
     metadata: dict
-    content: Optional[str]
-    children: List["Resource"]
+    content: str | None
+    children: list["Resource"]
     last_modified: datetime
 
 
@@ -31,10 +30,10 @@ def _get_last_modified(repo: git.Repo, file_path: PurePath) -> datetime:
 
 
 def _get_resources(
-    dir: Dir, parent_path: PurePath, processors: List[Processor], repo: git.Repo
-) -> List[Resource]:
-    child_resources: List[Resource] = []
-    dir_resource: Optional[Resource] = None
+    dir: Dir, parent_path: PurePath, processors: list[Processor], repo: git.Repo
+) -> list[Resource]:
+    child_resources: list[Resource] = []
+    dir_resource: Resource | None = None
 
     # do a first pass to see if we can find a "dir_resource"
     for file in dir.files:
@@ -105,7 +104,7 @@ def _get_resources(
     return [dir_resource]
 
 
-def get_resources(dir: Dir, processors: List[Processor], repo: git.Repo) -> Resource:
+def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Resource:
     """
     Gets a list of resources from a scanned filesystem.
 

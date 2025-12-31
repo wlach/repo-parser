@@ -8,13 +8,12 @@ import pathlib
 import re
 import shutil
 import subprocess
-from typing import Dict, List, Optional
+from typing import Annotated
 
 import frontmatter
 import jinja2
 import typer
 from livereload import Server
-from typing_extensions import Annotated
 
 from repo_parser import Processor, Resource, get_resources, scan
 
@@ -28,7 +27,7 @@ def _process_markdown(file_contents: str):
     return filetype, metadata, file_contents
 
 
-def _augment_metadata(resource: Resource, extra_metadata: Dict):
+def _augment_metadata(resource: Resource, extra_metadata: dict):
     """
     add language metadata to service/library files based on parent resources
     """
@@ -53,8 +52,8 @@ def _rewrite_readmes(resource: Resource) -> None:
         _rewrite_readmes(child)
 
 
-def _collect_resources(resource: Resource, type: str) -> List[Resource]:
-    resources: List[Resource] = []
+def _collect_resources(resource: Resource, type: str) -> list[Resource]:
+    resources: list[Resource] = []
 
     # append the resource itself (if it matches the type) as well as any children
     # that also match
@@ -165,7 +164,7 @@ def main(
     docs_dir: pathlib.Path,
     output_dir: pathlib.Path,
     watch: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option(
             "--watch", help="Continuously watch for changes, build, and serve website"
         ),

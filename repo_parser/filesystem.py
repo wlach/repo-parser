@@ -2,7 +2,6 @@ import pathlib
 import re
 from dataclasses import dataclass
 from pathlib import PurePath
-from typing import List, Optional
 
 import git
 
@@ -13,26 +12,26 @@ from .processor import Processor
 class File:
     name: str
     src_path: PurePath
-    content: Optional[str]
+    content: str | None
 
 
 @dataclass
 class Dir:
     path: pathlib.Path
-    files: List[File]
-    dirs: List["Dir"]
+    files: list[File]
+    dirs: list["Dir"]
 
 
 def _scan(
     path: pathlib.Path,
-    processors: List[Processor],
-    ignore_patterns: List[re.Pattern],
+    processors: list[Processor],
+    ignore_patterns: list[re.Pattern],
     repo: git.Repo,
     depth: int,
-    max_depth: Optional[int],
+    max_depth: int | None,
 ) -> Dir:
     dir = Dir(path=pathlib.PurePath(path), files=[], dirs=[])
-    entries = [entry for entry in path.iterdir()]
+    entries = list(path.iterdir())
     if not entries:
         return dir
     resolved_entries = {str(entry.resolve()) for entry in entries}
@@ -42,10 +41,8 @@ def _scan(
         resolved_entry
         for resolved_entry in resolved_entries
         if any(
-            [
-                re.search(pattern, resolved_entry) is not None
-                for pattern in ignore_patterns
-            ]
+            re.search(pattern, resolved_entry) is not None
+            for pattern in ignore_patterns
         )
     }
     # also ignore anything .gitignored (doing this second because it's a likely a little
@@ -58,7 +55,7 @@ def _scan(
         # FIXME: At some point we should only ignore .git in the root directory
         if entry.name == ".git" or str(entry.resolve()) in ignored:
             continue
-        elif entry.is_file():
+        if entry.is_file():
             for processor in processors:
                 if processor.pattern.search(str(entry)):
                     content = entry.read_text() if processor.read_content else None
@@ -86,10 +83,10 @@ def _scan(
 
 def scan(
     path: pathlib.Path,
-    processors: List[Processor],
-    ignore_patterns: Optional[List[re.Pattern]] = None,
-    subdirs: Optional[List[pathlib.Path]] = None,
-    max_depth: Optional[int] = None,
+    processors: list[Processor],
+    ignore_patterns: list[re.Pattern] | None = None,
+    subdirs: list[pathlib.Path] | None = None,
+    max_depth: int | None = None,
 ) -> tuple[Dir, git.Repo]:
     """
     Scans a GitHub repository for files and subdirectories, returning a data

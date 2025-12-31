@@ -33,9 +33,9 @@ def setup(app):
     app.connect("html-page-context", override_last_updated)
 
 
-def override_last_updated(app, pagename, templatename, context, doctree):
+def override_last_updated(app, pagename, _templatename, context, _doctree):
     # Check if the page has metadata
-    if "meta" in context and context["meta"]:
+    if context.get("meta"):
         # Look for your custom 'last_updated' key in the metadata
         custom_date = context["meta"].get("last_updated")
 

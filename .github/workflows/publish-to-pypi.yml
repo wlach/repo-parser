@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Build package
         run: uv build
@@ -43,6 +43,7 @@ jobs:
 
     permissions:
       id-token: write
+      attestations: write
 
     steps:
       - name: Download all the dists
@@ -69,6 +70,7 @@ jobs:
 
     permissions:
       id-token: write
+      attestations: write
 
     steps:
       - name: Download all the dists

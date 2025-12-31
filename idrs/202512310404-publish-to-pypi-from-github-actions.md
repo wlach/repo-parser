@@ -1,4 +1,4 @@
-# Publish to pypi from GitHub Actions
+# Publish to PyPI from GitHub Actions
 
 Owner: Will Lachance <wlach@protonmail.com>
 
@@ -6,7 +6,7 @@ Owner: Will Lachance <wlach@protonmail.com>
 
 ### Problem Statement
 
-repo-parser packages can only be published to pypi manually, which is time consuming, error prone and less secure than doing so via GitHub actions.
+repo-parser packages can only be published to PyPI manually, which is time consuming, error prone and less secure than doing so via GitHub actions.
 
 ### Context (as needed)
 
@@ -14,6 +14,10 @@ repo-parser packages can only be published to pypi manually, which is time consu
 
 - Make it easier to publish new releases
 - Improve security
+
+### Non-Goals
+
+- Automate version bumping (will still entail a seperate commit to bump version)
 
 ### Proposed Solution
 
@@ -58,9 +62,9 @@ In general this means adding a new GitHub workflow which ties uploads to PyPI to
 - [x] Create `.github/workflows/publish-to-pypi.yml` workflow file
 - [x] Configure PyPI Trusted Publishers (manual - see pre-requisites above)
 - [x] Configure GitHub Environments (manual - see pre-requisites above)
-- [ ] Merge this branch to main to test TestPyPI publishing
-- [ ] Verify TestPyPI upload works
-- [ ] Create a test GitHub release to verify PyPI publishing workflow (without actual approval)
+- [x] Merge this branch to main to test TestPyPI publishing
+- [x] Verify TestPyPI upload works
+- [x] Create a test GitHub release to verify PyPI publishing workflow (without actual approval)
 
 ### Workflow File Details
 
@@ -69,7 +73,7 @@ Create `.github/workflows/publish-to-pypi.yml` with:
 **Key features:**
 
 - Uses `uv build` instead of `python -m build` (project uses uv)
-- Builds on every push to main and on tags
+- Builds on every push to main and on GitHub releases
 - Publishes to TestPyPI on main branch pushes (no approval needed)
 - Publishes to PyPI on GitHub releases (requires manual approval via `release-pypi` environment)
 - Uses trusted publishing (OIDC tokens, no API keys needed)
@@ -97,3 +101,8 @@ Once implemented, to publish a new version:
 4. Create a GitHub Release with a new tag (e.g., `v0.2.0`)
 5. Approve the deployment in the Actions tab
 6. Verify PyPI upload: https://pypi.org/project/repo-parser/
+
+**Notes:**
+
+- Version bumping is manual for now. Could automate with tools like `bump-my-version` or `python-semantic-release` in a future iteration.
+- TestPyPI uploads will fail with "file already exists" if you push to main without bumping the version. This is expected and harmless - TestPyPI is just for pipeline testing.

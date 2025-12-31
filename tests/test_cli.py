@@ -121,6 +121,29 @@ After"""
         result = _strip_html_comments(text)
         assert result == "Line 1\n\nLine 2"
 
+    def test_strip_comment_on_own_line(self):
+        """Test that removing a comment on its own line doesn't leave extra blank lines."""
+        text = """Line 1
+
+<!-- Comment on its own line -->
+
+Line 2"""
+        result = _strip_html_comments(text)
+        # Should have at most one blank line between Line 1 and Line 2
+        assert result == "Line 1\n\nLine 2"
+
+    def test_strip_whitespace_only_lines(self):
+        """Test that whitespace-only lines are normalized."""
+        text = "Line 1\n  \n\t\nLine 2"
+        result = _strip_html_comments(text)
+        assert result == "Line 1\n\nLine 2"
+
+    def test_strip_leading_trailing_whitespace(self):
+        """Test that leading and trailing whitespace is removed."""
+        text = "\n\n  Content  \n\n"
+        result = _strip_html_comments(text)
+        assert result == "Content"
+
 
 class TestIdrNew:
     """Tests for idr new command."""

@@ -81,9 +81,16 @@ def _strip_html_comments(text: str) -> str:
         Text with HTML comments removed and extra blank lines cleaned up.
     """
     # Remove HTML comments (including multiline)
+    # Note: This doesn't handle edge cases like --> within comment text,
+    # but that's unlikely in our IDR templates
     text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
-    # Clean up multiple consecutive blank lines (more than 2)
+    # Clean up any blank lines left by removing comments
+    # First normalize all whitespace-only lines to actual blank lines
+    text = re.sub(r"^\s+$", "", text, flags=re.MULTILINE)
+    # Then collapse multiple consecutive blank lines (3+) to exactly 2 newlines
     text = re.sub(r"\n{3,}", "\n\n", text)
+    # Finally, strip any leading/trailing whitespace from the entire document
+    text = text.strip()
     return text
 
 

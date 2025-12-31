@@ -27,10 +27,13 @@ class TestGetGitAuthor:
         """Test getting author from git config."""
         with patch("repo_parser.cli.git.GitConfigParser") as mock_parser:
             mock_instance = mock_parser.return_value
-            mock_instance.get_value.return_value = "Test Author"
+            mock_instance.get_value.side_effect = lambda section, key: {
+                "name": "Test Author",
+                "email": "test@example.com",
+            }[key]
 
             author = _get_git_author()
-            assert author == "Test Author"
+            assert author == "Test Author <test@example.com>"
 
     def test_get_git_author_no_config(self):
         """Test fallback when git config is not available."""
@@ -157,7 +160,7 @@ class TestIdrNew:
             patch("repo_parser.cli._get_git_author") as mock_author,
         ):
             mock_root.return_value = tmp_path
-            mock_author.return_value = "Test Author"
+            mock_author.return_value = "Test Author <test@example.com>"
 
             result = runner.invoke(app, ["idr", "new", "Add Cool Feature"])
 
@@ -175,7 +178,7 @@ class TestIdrNew:
             # Check content is correctly rendered
             content = idr_files[0].read_text()
             assert "# Add Cool Feature" in content
-            assert "Author: Test Author" in content
+            assert "Owner: Test Author <test@example.com>" in content
             assert "## Implementation (ephemeral)" in content
             # Should have comments by default
             assert "<!--" in content
@@ -189,7 +192,7 @@ class TestIdrNew:
             patch("repo_parser.cli._get_git_author") as mock_author,
         ):
             mock_root.return_value = tmp_path
-            mock_author.return_value = "Test Author"
+            mock_author.return_value = "Test Author <test@example.com>"
 
             result = runner.invoke(
                 app, ["idr", "new", "Clean Feature", "--no-comments"]
@@ -208,7 +211,7 @@ class TestIdrNew:
             # Check content has no comments
             content = idr_files[0].read_text()
             assert "# Clean Feature" in content
-            assert "Author: Test Author" in content
+            assert "Owner: Test Author <test@example.com>" in content
             assert "<!--" not in content
             assert "-->" not in content
 
@@ -222,7 +225,7 @@ class TestIdrNew:
             patch.dict("os.environ", {"RP_IDR_NO_COMMENTS": "1"}),
         ):
             mock_root.return_value = tmp_path
-            mock_author.return_value = "Test Author"
+            mock_author.return_value = "Test Author <test@example.com>"
 
             result = runner.invoke(app, ["idr", "new", "Env Feature"])
 

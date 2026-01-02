@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 import git
 
@@ -29,8 +29,146 @@ def _get_last_modified(repo: git.Repo, file_path: PurePath) -> datetime:
     return datetime.now()
 
 
+def _get_last_modified_batch(
+    repo: git.Repo, file_paths: list[PurePath], scan_root: Path | None = None
+) -> dict[PurePath, datetime]:
+    """
+    Get the last modification dates for multiple files in a single batched git call.
+
+    Args:
+        repo: The git repository
+        file_paths: List of file paths to query (can be absolute or relative)
+
+    Returns:
+        Dictionary mapping file paths to their last commit dates. Files with no
+        git history will have datetime.now() as their value.
+
+    Raises:
+        ValueError: If a file path cannot be converted to a relative path
+        git.GitCommandError: If git log command fails (may be raised by repo.git.log)
+    """
+    if not file_paths:
+        return {}
+
+    repo_root = Path(repo.working_dir)
+    result: dict[PurePath, datetime] = {}
+
+    # Convert all paths to relative paths and build a mapping
+    # We need to map relative paths back to original PurePath objects
+    rel_path_to_original: dict[str, PurePath] = {}
+    rel_paths: list[str] = []
+
+    for file_path in file_paths:
+        # Convert to Path and resolve to absolute path
+        path_obj = Path(file_path)
+        if path_obj.is_absolute():
+            abs_path = path_obj
+        else:
+            # Try resolving relative path against scan_root (if provided) or current working directory
+            if scan_root is not None:
+                abs_path = (scan_root / path_obj).resolve()
+            else:
+                abs_path = path_obj.resolve()
+
+            # If the resolved path is not within the repo root, try resolving against repo root
+            try:
+                abs_path.relative_to(repo_root)
+            except ValueError:
+                # Path is not within repo when resolved against scan_root/cwd, try repo root
+                abs_path = (repo_root / path_obj).resolve()
+
+        # Note: In normal operation, all paths come from scanning the repository,
+        # so they should always be within the repo root. This may raise ValueError
+        # if a path is outside the repo, but that shouldn't happen in practice.
+        rel_path = str(abs_path.relative_to(repo_root))
+
+        # Normalize path separators (git uses forward slashes)
+        rel_path = rel_path.replace("\\", "/")
+        rel_path_to_original[rel_path] = file_path
+        rel_paths.append(rel_path)
+
+    # Process in chunks to avoid command-line length limits
+    chunk_size = 200
+    for i in range(0, len(rel_paths), chunk_size):
+        chunk = rel_paths[i : i + chunk_size]
+        chunk_set = set(chunk)  # For fast lookup
+
+        # Use git log to get commit timestamps and affected files
+        # Format: timestamp\n<blank>\nfile1\nfile2\n...\n<blank>\n
+        # Note: This may raise git.GitCommandError if git log fails
+        log_output = repo.git.log("--format=%ct", "--name-only", "--", *chunk)
+
+        # Parse the output
+        # Format is: timestamp\n<blank>\nfile1\nfile2\n...\n<blank>\n
+        lines = log_output.split("\n")
+        current_timestamp: int | None = None
+        file_timestamps: dict[str, int] = {}
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                # Blank line separates commits, but don't clear timestamp yet
+                # as files may come after the blank line
+                continue
+
+            # Check if this is a timestamp (all digits)
+            if line.isdigit():
+                current_timestamp = int(line)
+            elif current_timestamp is not None:
+                # This is a file path, normalize it
+                file_path_normalized = line.replace("\\", "/")
+                # Only track files in this chunk
+                if file_path_normalized in chunk_set:
+                    # Track the most recent (largest) timestamp for each file
+                    if (
+                        file_path_normalized not in file_timestamps
+                        or file_timestamps[file_path_normalized] < current_timestamp
+                    ):
+                        file_timestamps[file_path_normalized] = current_timestamp
+
+        # Convert timestamps to datetime and map back to original PurePath objects
+        # Only process files in this chunk
+        for rel_path in chunk:
+            original_path = rel_path_to_original[rel_path]
+            if rel_path in file_timestamps:
+                result[original_path] = datetime.fromtimestamp(
+                    file_timestamps[rel_path]
+                )
+            else:
+                # File has no git history
+                result[original_path] = datetime.now()
+
+    return result
+
+
+def _apply_last_modified_cache(
+    resource: Resource, last_modified_cache: dict[PurePath, datetime]
+) -> None:
+    """
+    Recursively apply last_modified dates from cache to a Resource tree.
+
+    Updates file resources with dates from the cache, then updates directory
+    resources to be the max of their children.
+    """
+    # Apply to children first (depth-first)
+    for child in resource.children:
+        _apply_last_modified_cache(child, last_modified_cache)
+
+    # Apply to this resource if it's a file
+    if resource.type == "file" and resource.src_path in last_modified_cache:
+        resource.last_modified = last_modified_cache[resource.src_path]
+
+    # Update directory resources to be max of children
+    if resource.children:
+        resource.last_modified = max(child.last_modified for child in resource.children)
+
+
 def _get_resources(
-    dir: Dir, parent_path: PurePath, processors: list[Processor], repo: git.Repo
+    dir: Dir,
+    parent_path: PurePath,
+    processors: list[Processor],
+    repo: git.Repo,
+    file_paths: list[PurePath] | None = None,
 ) -> list[Resource]:
     child_resources: list[Resource] = []
     dir_resource: Resource | None = None
@@ -65,6 +203,10 @@ def _get_resources(
         for processor in processors:
             if processor.pattern.search(file.name):
                 _, metadata, _ = processor.process(file.content or "")
+                # Collect file path for batch querying
+                if file_paths is not None:
+                    file_paths.append(file.src_path)
+
                 child_resources.append(
                     Resource(
                         name=file.name,
@@ -74,7 +216,7 @@ def _get_resources(
                         metadata=metadata,
                         content=file.content,
                         children=[],
-                        last_modified=_get_last_modified(repo, file.src_path),
+                        last_modified=datetime.now(),  # Placeholder, will be updated from cache
                     )
                 )
                 # Will only match once!
@@ -82,7 +224,13 @@ def _get_resources(
 
     for subdir in dir.dirs:
         child_resources.extend(
-            _get_resources(subdir, parent_path / subdir.path.name, processors, repo)
+            _get_resources(
+                subdir,
+                parent_path / subdir.path.name,
+                processors,
+                repo,
+                file_paths,
+            )
         )
 
     # if this directory did not define a new resource, append any newly
@@ -112,10 +260,19 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
     note that order matters: the first processor that matches a given file
     will be used and no further processors will be applied after that.
     """
+    # Collect file paths as we create resources (single pass)
+    file_paths: list[PurePath] = []
+    children = _get_resources(dir, PurePath(), processors, repo, file_paths)
 
-    children = _get_resources(dir, PurePath(), processors, repo)
+    # Batch query all commit dates at once
+    # file.src_path is relative to where scan() was called (current working directory),
+    # not relative to dir.path. So we use the current working directory as scan_root.
+    import os
 
-    return Resource(
+    scan_root = Path(os.getcwd())
+    last_modified_cache = _get_last_modified_batch(repo, file_paths, scan_root)
+
+    root_resource = Resource(
         name=dir.path.name,
         path=PurePath(),
         src_path=dir.path,
@@ -123,7 +280,10 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
         metadata={},
         children=children,
         content=None,
-        last_modified=max(child.last_modified for child in children)
-        if children
-        else datetime.now(),
+        last_modified=datetime.now(),  # Placeholder, will be updated from cache
     )
+
+    # Apply last_modified dates from cache
+    _apply_last_modified_cache(root_resource, last_modified_cache)
+
+    return root_resource

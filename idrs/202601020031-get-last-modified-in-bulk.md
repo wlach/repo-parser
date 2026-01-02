@@ -49,11 +49,12 @@ N/A
 
 1. **Add `_get_last_modified_batch()` function in `resource.py`**
 
-   - Accepts `repo: git.Repo` and `file_paths: list[PurePath]`
+   - Accepts `repo: git.Repo`, `file_paths: list[PurePath]`, and optional `scan_root: Path | None`
    - Returns `dict[PurePath, datetime]` mapping file paths to their last commit dates
    - Converts all `file_paths` to relative paths using `pathlib.Path.relative_to(repo.working_dir)` (git log needs paths relative to repo root)
+   - Uses `scan_root` parameter to resolve relative paths (if provided, relative paths are resolved against this root; otherwise against current working directory or repo root)
    - Uses `repo.git.log()` with format `--format="%ct" --name-only -- <paths>` to get commit timestamps and affected files
-   - Processes in chunks if needed (e.g., 100-200 files at a time) to avoid command-line length limits
+   - Processes in chunks using `LAST_MODIFIED_CHUNK_SIZE` constant (200 files per chunk) to avoid command-line length limits
    - Handles files with no git history (returns `datetime.now()` in the cache)
    - Note: May raise `git.GitCommandError` if git log fails (exceptions propagate naturally)
 
@@ -78,7 +79,8 @@ N/A
 
 2. **Batch query commit dates:**
 
-   - Call `_get_last_modified_batch()` with all collected file paths to get commit dates in one operation
+   - Call `_get_last_modified_batch()` with all collected file paths and `scan_root=dir.path` to get commit dates in one operation
+   - Pass `dir.path` as `scan_root` since `file.src_path` values are relative to the scan root
    - This returns a `dict[PurePath, datetime]` cache
 
 3. **Apply cached dates:**
@@ -109,7 +111,7 @@ N/A
 ### Implementation Checklist
 
 - [x] Implement `_get_last_modified_batch()` function with git log parsing
-- [x] Add chunking logic for large file sets (200 files per chunk)
+- [x] Add chunking logic for large file sets using `LAST_MODIFIED_CHUNK_SIZE` constant (200 files per chunk)
 - [x] Modify `_get_resources()` to accept optional `file_paths` parameter for collecting paths
 - [x] Modify `_get_resources()` to accept optional `file_paths` parameter and collect paths as it creates resources
 - [x] Modify `get_resources()` to create resources and collect paths in one walk
@@ -125,10 +127,12 @@ N/A
 
 **`repo_parser/resource.py`:**
 
-- Add `_get_last_modified_batch(repo: git.Repo, file_paths: list[PurePath]) -> dict[PurePath, datetime]`
+- Add `LAST_MODIFIED_CHUNK_SIZE` constant (200) for chunking batch queries
+- Add `_get_last_modified_batch(repo: git.Repo, file_paths: list[PurePath], scan_root: Path | None = None) -> dict[PurePath, datetime]`
   - Converts paths to relative using `repo.working_dir`
+  - Uses `scan_root` parameter to resolve relative paths (if provided, relative paths resolved against this root; otherwise against current working directory or repo root)
   - Uses `git log --format="%ct" --name-only` to batch query
-  - Processes in chunks of 200 files
+  - Processes in chunks using `LAST_MODIFIED_CHUNK_SIZE` constant
   - Returns dict mapping file paths to commit dates (or `datetime.now()` if no history)
   - Note: May raise `ValueError` if path is outside repo root (shouldn't happen in practice)
 - Add `_apply_last_modified_cache(resource: Resource, last_modified_cache: dict[PurePath, datetime]) -> None`
@@ -141,14 +145,14 @@ N/A
   - Resources created with placeholder `datetime.now()` dates
 - Modify `get_resources()` to:
   - Create resources and collect paths in single walk (via `_get_resources()` with `file_paths` list)
-  - Batch query commit dates using `_get_last_modified_batch()` with all collected paths
+  - Batch query commit dates using `_get_last_modified_batch()` with all collected paths and `scan_root=dir.path`
   - Apply cached dates using `_apply_last_modified_cache()`
 
 ### Edge Cases
 
 - Files with no git history (not tracked, or new files): return `datetime.now()` as fallback
 - Files that have been renamed (git log may show old paths): should not be a problem right now, but may need `--follow` flag in future
-- Very large repositories (may need chunking): chunk if command-line length limits are hit (test with 100-200 files per chunk)
+- Very large repositories (may need chunking): chunk using `LAST_MODIFIED_CHUNK_SIZE` constant (200 files per chunk) to avoid command-line length limits
 - Empty repositories or repositories with no commits: return `datetime.now()` for all files
 - Files outside the repository root: `ValueError` may be raised by `pathlib.Path.relative_to()` - shouldn't happen in practice since all paths come from repo scanning (comment documents this assumption)
 - Path normalization: ensure paths from git log output match the normalized input paths (handle path separators, relative vs absolute)

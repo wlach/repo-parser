@@ -7,6 +7,9 @@ import git
 from .filesystem import Dir
 from .processor import Processor
 
+# Chunk size for batch git log queries to avoid command-line length limits
+LAST_MODIFIED_CHUNK_SIZE = 200
+
 
 @dataclass
 class Resource:
@@ -38,6 +41,9 @@ def _get_last_modified_batch(
     Args:
         repo: The git repository
         file_paths: List of file paths to query (can be absolute or relative)
+        scan_root: Optional root path for resolving relative file paths. If provided,
+            relative paths will be resolved against this root. If None, relative paths
+            are resolved against the current working directory or repo root.
 
     Returns:
         Dictionary mapping file paths to their last commit dates. Files with no
@@ -88,9 +94,8 @@ def _get_last_modified_batch(
         rel_paths.append(rel_path)
 
     # Process in chunks to avoid command-line length limits
-    chunk_size = 200
-    for i in range(0, len(rel_paths), chunk_size):
-        chunk = rel_paths[i : i + chunk_size]
+    for i in range(0, len(rel_paths), LAST_MODIFIED_CHUNK_SIZE):
+        chunk = rel_paths[i : i + LAST_MODIFIED_CHUNK_SIZE]
         chunk_set = set(chunk)  # For fast lookup
 
         # Use git log to get commit timestamps and affected files
@@ -107,8 +112,7 @@ def _get_last_modified_batch(
         for line in lines:
             line = line.strip()
             if not line:
-                # Blank line separates commits, but don't clear timestamp yet
-                # as files may come after the blank line
+                # Blank line separates commits
                 continue
 
             # Check if this is a timestamp (all digits)
@@ -117,7 +121,6 @@ def _get_last_modified_batch(
             elif current_timestamp is not None:
                 # This is a file path, normalize it
                 file_path_normalized = line.replace("\\", "/")
-                # Only track files in this chunk
                 if file_path_normalized in chunk_set:
                     # Track the most recent (largest) timestamp for each file
                     if (
@@ -127,7 +130,6 @@ def _get_last_modified_batch(
                         file_timestamps[file_path_normalized] = current_timestamp
 
         # Convert timestamps to datetime and map back to original PurePath objects
-        # Only process files in this chunk
         for rel_path in chunk:
             original_path = rel_path_to_original[rel_path]
             if rel_path in file_timestamps:
@@ -188,7 +190,7 @@ def _get_resources(
                             metadata=metadata,
                             content=None,
                             children=[],
-                            last_modified=datetime.now(),  # Placeholder, will be computed from children
+                            last_modified=datetime.now(),
                         )
                         # parent path is now the dir_resource
                         parent_path = dir_resource.path
@@ -216,7 +218,7 @@ def _get_resources(
                         metadata=metadata,
                         content=file.content,
                         children=[],
-                        last_modified=datetime.now(),  # Placeholder, will be updated from cache
+                        last_modified=datetime.now(),
                     )
                 )
                 # Will only match once!
@@ -242,12 +244,10 @@ def _get_resources(
     dir_resource.children = child_resources
 
     # Update dir_resource last_modified to be the most recent from all children
-    # (which includes all files in this directory, even the one that defined it)
     if child_resources:
         dir_resource.last_modified = max(
             child.last_modified for child in child_resources
         )
-    # If no children, keep the placeholder datetime.now()
 
     return [dir_resource]
 
@@ -265,11 +265,7 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
     children = _get_resources(dir, PurePath(), processors, repo, file_paths)
 
     # Batch query all commit dates at once
-    # file.src_path is relative to where scan() was called (current working directory),
-    # not relative to dir.path. So we use the current working directory as scan_root.
-    import os
-
-    scan_root = Path(os.getcwd())
+    scan_root = dir.path
     last_modified_cache = _get_last_modified_batch(repo, file_paths, scan_root)
 
     root_resource = Resource(
@@ -280,7 +276,7 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
         metadata={},
         children=children,
         content=None,
-        last_modified=datetime.now(),  # Placeholder, will be updated from cache
+        last_modified=datetime.now(),
     )
 
     # Apply last_modified dates from cache

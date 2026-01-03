@@ -252,7 +252,7 @@ def _get_resources(
     return [dir_resource]
 
 
-def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Resource:
+def get_resources(repo: git.Repo, dir: Dir, processors: list[Processor]) -> Resource:
     """
     Gets a list of resources from a scanned filesystem.
 

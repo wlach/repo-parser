@@ -19,7 +19,7 @@ def test_get_resources(simple_filesystem, default_processors):
         ),
     ]
     dir, repo = simple_filesystem
-    result = get_resources(dir, processors, repo)
+    result = get_resources(repo, dir, processors)
 
     # Check structure without comparing exact datetime values
     assert result.name == "test"
@@ -51,7 +51,7 @@ def test_directory_last_modified_from_children(simple_filesystem, default_proces
         ),
     ]
     dir, repo = simple_filesystem
-    result = get_resources(dir, processors, repo)
+    result = get_resources(repo, dir, processors)
 
     # Find the service-example directory resource
     service = next(r for r in result.children if r.name == "service-example")
@@ -71,7 +71,7 @@ def test_repo_last_modified_from_all_descendants(simple_filesystem, default_proc
         ),
     ]
     dir, repo = simple_filesystem
-    result = get_resources(dir, processors, repo)
+    result = get_resources(repo, dir, processors)
 
     # Collect all dates from all resources recursively
     def collect_dates(resource):

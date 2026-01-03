@@ -142,7 +142,7 @@ def _scan_and_write_docs(
     ]
 
     dir, repo = scan(dirname, processors)
-    root_resource = get_resources(dir, processors, repo)
+    root_resource = get_resources(repo, dir, processors)
 
     _augment_metadata(root_resource, {})
     _rewrite_readmes(root_resource)

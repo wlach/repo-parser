@@ -143,7 +143,7 @@ def _get_last_modified_batch(
     return result
 
 
-def _apply_last_modified_cache(
+def _apply_last_modified_map(
     resource: Resource, last_modified_cache: dict[PurePath, datetime]
 ) -> None:
     """
@@ -154,7 +154,7 @@ def _apply_last_modified_cache(
     """
     # Apply to children first (depth-first)
     for child in resource.children:
-        _apply_last_modified_cache(child, last_modified_cache)
+        _apply_last_modified_map(child, last_modified_cache)
 
     # Apply to this resource if it's a file
     if resource.type == "file" and resource.src_path in last_modified_cache:
@@ -266,7 +266,7 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
 
     # Batch query all commit dates at once
     scan_root = dir.path
-    last_modified_cache = _get_last_modified_batch(repo, file_paths, scan_root)
+    last_modified_map = _get_last_modified_batch(repo, file_paths, scan_root)
 
     root_resource = Resource(
         name=dir.path.name,
@@ -279,7 +279,7 @@ def get_resources(dir: Dir, processors: list[Processor], repo: git.Repo) -> Reso
         last_modified=datetime.now(),
     )
 
-    # Apply last_modified dates from cache
-    _apply_last_modified_cache(root_resource, last_modified_cache)
+    # Apply last_modified dates
+    _apply_last_modified_map(root_resource, last_modified_map)
 
     return root_resource

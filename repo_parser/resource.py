@@ -252,7 +252,12 @@ def _get_resources(
     return [dir_resource]
 
 
-def get_resources(repo: git.Repo, dir: Dir, processors: list[Processor]) -> Resource:
+def get_resources(
+    repo: git.Repo,
+    dir: Dir,
+    processors: list[Processor],
+    disable_last_modified: bool = False,
+) -> Resource:
     """
     Gets a list of resources from a scanned filesystem.
 
@@ -263,10 +268,6 @@ def get_resources(repo: git.Repo, dir: Dir, processors: list[Processor]) -> Reso
     # Collect file paths as we create resources (single pass)
     file_paths: list[PurePath] = []
     children = _get_resources(dir, PurePath(), processors, repo, file_paths)
-
-    # Batch query all commit dates at once
-    scan_root = dir.path
-    last_modified_map = _get_last_modified_batch(repo, file_paths, scan_root)
 
     root_resource = Resource(
         name=dir.path.name,
@@ -279,7 +280,11 @@ def get_resources(repo: git.Repo, dir: Dir, processors: list[Processor]) -> Reso
         last_modified=datetime.now(),
     )
 
+    # Batch query all commit dates at once
     # Apply last_modified dates
-    _apply_last_modified_map(root_resource, last_modified_map)
+    if not disable_last_modified:
+        scan_root = dir.path
+        last_modified_map = _get_last_modified_batch(repo, file_paths, scan_root)
+        _apply_last_modified_map(root_resource, last_modified_map)
 
     return root_resource

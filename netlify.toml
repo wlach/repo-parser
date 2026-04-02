@@ -4,5 +4,6 @@ command = """
     uv run example/example_parser.py . example/repo/docs output
     cd output
     PATH=../.venv/bin:$PATH make html
+    cp repo.duckdb _build/html/repo.duckdb
 """
 publish = "output/_build/html"

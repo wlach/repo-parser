@@ -4,19 +4,35 @@
 Example parser configuration, which is used to generate the example site.
 """
 
+import json
 import pathlib
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Annotated
 
+import duckdb
 import frontmatter
 import jinja2
 import typer
 from livereload import Server
 
-from repo_parser import Processor, Resource, get_resources, scan
+from repo_parser import Processor, get_resources, scan
 from repo_parser.filesystem import File
+from repo_parser.outputs import to_duckdb
+
+
+@dataclass
+class RenderResource:
+    name: str
+    path: str
+    src_path: str
+    type: str
+    metadata: dict
+    content: str | None
+    last_modified: datetime
 
 
 def _process_markdown(file: File):
@@ -28,71 +44,110 @@ def _process_markdown(file: File):
     return filetype, metadata, file
 
 
-def _augment_metadata(resource: Resource, extra_metadata: dict):
+def _augment_metadata(con: duckdb.DuckDBPyConnection) -> None:
     """
-    add language metadata to service/library files based on parent resources
+    Create a derived resources table with inherited language metadata.
     """
-    if resource.type == "language":
-        extra_metadata["language"] = resource.name
-    else:
-        resource.metadata.update(extra_metadata)
-
-    for child in resource.children:
-        _augment_metadata(child, extra_metadata)
-
-
-def _rewrite_readmes(resource: Resource) -> None:
-    """
-    rewrite README.md files to index.md (for Sphinx)
-
-    FIXME: maintain original paths for github links, etc
-    """
-    if resource.path == pathlib.PurePath("README.md"):
-        resource.path = pathlib.PurePath("index.md")
-    for child in resource.children:
-        _rewrite_readmes(child)
-
-
-def _collect_resources(resource: Resource, type: str) -> list[Resource]:
-    resources: list[Resource] = []
-
-    # append the resource itself (if it matches the type) as well as any children
-    # that also match
-    if resource.type == type:
-        resources.append(resource)
-    for child in resource.children:
-        resources.extend(_collect_resources(child, type))
-
-    return resources
+    con.sql("""
+        CREATE OR REPLACE TABLE resources_derived AS
+        SELECT
+            r.path,
+            r.parent_path,
+            r.name,
+            r.type,
+            r.content,
+            CASE
+                WHEN r.type != 'language' AND language.name IS NOT NULL
+                THEN json_merge_patch(
+                    r.properties,
+                    json_object('language', language.name)
+                )
+                ELSE r.properties
+            END AS properties,
+            r.last_modified
+        FROM resources_raw r
+        LEFT JOIN LATERAL (
+            SELECT ancestor.name
+            FROM resources_raw ancestor
+            WHERE ancestor.type = 'language'
+              AND (
+                  r.path = ancestor.path
+                  OR starts_with(r.path, ancestor.path || '/')
+              )
+            ORDER BY length(ancestor.path) DESC
+            LIMIT 1
+        ) language ON true
+    """)
 
 
-def _write_files(resource: Resource, output_dir: pathlib.Path) -> None:
-    for child in resource.children:
-        if child.type == "file":
-            file_path = output_dir / child.path
-            # FIXME: this is highly inefficient, we attempt to make a directory
-            # for every file, even if it's not needed (this is required because
-            # file resources may live under a deeply nested subpath)
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+def _get_resources(
+    con: duckdb.DuckDBPyConnection, resource_type: str
+) -> list[RenderResource]:
+    rows = con.execute(
+        """
+        SELECT name, path, type, properties, content, last_modified
+        FROM resources_derived
+        WHERE type = ?
+        ORDER BY name
+        """,
+        [resource_type],
+    ).fetchall()
 
-            # Parse existing frontmatter from content
-            post = frontmatter.loads(child.content or "")
+    return [
+        RenderResource(
+            name=name,
+            path=path,
+            src_path=path,
+            type=resource_type,
+            metadata=json.loads(properties),
+            content=content,
+            last_modified=last_modified,
+        )
+        for name, path, _type, properties, content, last_modified in rows
+    ]
 
-            # Merge in metadata from processing and add last_updated
-            post.metadata.update(child.metadata)
-            post.metadata["last_updated"] = child.last_modified.strftime("%Y-%m-%d")
 
-            # Write with merged frontmatter
-            content = frontmatter.dumps(post)
-            file_path.write_text(content)
+def _docs_file_path(resource_path: str, file_path: str) -> pathlib.PurePath:
+    relative_path = pathlib.PurePath(file_path).relative_to(resource_path)
+    if relative_path.name == "README.md":
+        return relative_path.with_name("index.md")
+
+    return relative_path
+
+
+def _write_files(
+    con: duckdb.DuckDBPyConnection, resource: RenderResource, output_dir: pathlib.Path
+) -> None:
+    rows = con.execute(
+        """
+        SELECT path, content, properties, last_modified
+        FROM resources_derived
+        WHERE parent_path = ?
+          AND type = 'file'
+        ORDER BY path
+        """,
+        [resource.path],
+    ).fetchall()
+
+    for file_path, content, properties, last_modified in rows:
+        output_path = output_dir / _docs_file_path(resource.path, file_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        post = frontmatter.loads(content or "")
+        post.metadata.update(json.loads(properties))
+        post.metadata["last_updated"] = last_modified.strftime("%Y-%m-%d")
+
+        output_path.write_text(frontmatter.dumps(post))
 
 
 def _write_docs(
-    repo: Resource, docs_template_dir: pathlib.Path, output_dir: pathlib.Path
+    con: duckdb.DuckDBPyConnection,
+    docs_template_dir: pathlib.Path,
+    output_dir: pathlib.Path,
 ) -> None:
-    services = _collect_resources(repo, "service")
-    libraries = _collect_resources(repo, "library")
-    languages = _collect_resources(repo, "language")
+    services = _get_resources(con, "service")
+    libraries = _get_resources(con, "library")
+    languages = _get_resources(con, "language")
 
     # first, create the docs directory from our template
     for file in docs_template_dir.glob("**/*"):
@@ -130,7 +185,7 @@ def _write_docs(
             resource_path = resources_path / resource.name
             resource_path.mkdir(parents=True, exist_ok=True)
             # copy over any other files
-            _write_files(resource, resource_path)
+            _write_files(con, resource, resource_path)
 
 
 def _scan_and_write_docs(
@@ -145,10 +200,14 @@ def _scan_and_write_docs(
     dir, repo = scan(dirname, processors)
     root_resource = get_resources(repo, dir, processors)
 
-    _augment_metadata(root_resource, {})
-    _rewrite_readmes(root_resource)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    db_path = output_dir / "repo.duckdb"
+    db_path.unlink(missing_ok=True)
+    with duckdb.connect(db_path) as con:
+        to_duckdb(con, root_resource, table_name="resources_raw")
+        _augment_metadata(con)
 
-    _write_docs(root_resource, docs_dir, output_dir)
+        _write_docs(con, docs_dir, output_dir)
 
 
 def _rebuild_sphinx(

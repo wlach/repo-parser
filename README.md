@@ -17,9 +17,6 @@ You can see a demo of a documentation site generated from this repo at:
 
 https://repo-parser-demo.netlify.app/
 
-> [!NOTE]
-> repo-parser is partly created with LLMs (specifically, Claude Code and ChatGPT), with heavy human curation.
-
 ## Usage
 
 For documentation generation and metadata extraction, see the example in `example/example_parser.py`.

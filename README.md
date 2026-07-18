@@ -73,8 +73,10 @@ con.close()
 | `properties`    | JSON      | Metadata/properties extracted by processors                              |
 | `last_modified` | TIMESTAMP | Last modification time from git                                          |
 
-The example documentation build writes `repo.duckdb` with `resources_raw` and a
-SQL-derived `resources_derived` table used by the docs renderer.
+The example documentation build uses `to_duckdb(..., table_name="resources_raw")`
+and also writes a SQL-derived `resources_derived` table used by the docs
+renderer. The queries below assume the default `resources` table created by
+plain `to_duckdb(con, root_resource)`.
 
 #### Example Queries
 

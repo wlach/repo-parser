@@ -120,12 +120,16 @@ Users provide processor functions that extract metadata from files:
 ```python
 # Current pattern (example_parser.py)
 import frontmatter
+import re
 
-def process_markdown(file_contents: str):
-    metadata, _ = frontmatter.parse(file_contents)
+from repo_parser import Processor, get_resources, scan
+from repo_parser.filesystem import File
+
+def process_markdown(file: File):
+    metadata, _ = frontmatter.parse(file.content or "")
     filetype = metadata.get("type", "file")
     metadata.pop("type", None)
-    return filetype, metadata, file_contents
+    return filetype, metadata, file
 
 processors = [
     Processor(re.compile(r"\.md$"), process_markdown, True),
@@ -263,15 +267,18 @@ duckdb output.duckdb "SELECT path FROM resources WHERE name='README.md'"
 ```python
 # Users write processor functions as needed
 import frontmatter
-from repo_parser import Processor
+import re
 
-def process_markdown(content):
-    metadata, _ = frontmatter.parse(content)
+from repo_parser import Processor
+from repo_parser.filesystem import File
+
+def process_markdown(file: File):
+    metadata, _ = frontmatter.parse(file.content or "")
     filetype = metadata.get("type", "file")
     metadata.pop("type", None)
-    return filetype, metadata, content
+    return filetype, metadata, file
 
-processors = [Processor(r"\.md$", process_markdown, True)]
+processors = [Processor(re.compile(r"\.md$"), process_markdown, True)]
 
 # Then use with to_duckdb
 dir, repo = scan("./repo", processors)
@@ -517,46 +524,7 @@ def _flatten_resources(
 
 ### Completed work
 
-**2025-01-03**: Core DuckDB serialization implemented and tested
-
-- Created `repo_parser/outputs.py` with:
-  - `to_duckdb(resource, output_path)`: Main public API
-  - `_flatten_resource_tree(resource, parent_id, next_id)`: Recursive tree flattening
-- Schema implementation:
-  - `resources` table with id, parent_id, name, path, src_path, type, content, last_modified
-  - `metadata` table with resource_id, key, value (JSON-encoded for complex types)
-  - Foreign key constraints
-- Test coverage in `tests/test_outputs.py`:
-  - Basic two-node tree serialization
-  - Nested three-level tree with parent_id verification
-  - Complex metadata (lists, dicts) JSON encoding
-  - Overwrite behavior (ensures clean re-serialization)
-- Added `duckdb==1.4.3` to dependencies via `uv add duckdb`
-
-All tests passing (4/4) at the time. This implementation is now stale relative
-to the revised single-table/properties JSON design above.
-
-**2025-01-03**: Phase 2 documentation completed
-
-- Added DuckDB documentation to README.md for the original two-table design:
-  - Schema reference tables for `resources` and `metadata` tables
-  - Example queries covering common use cases:
-    - Finding services
-    - Detecting missing READMEs
-    - Querying metadata
-    - Reconstructing tree hierarchy with recursive CTEs
-  - Data composition patterns showing how to join with external data sources:
-    - Code ownership mapping
-    - Deployment tracking
-    - Incident correlation
-    - Metrics enrichment
-  - Command-line querying examples
-  - Export to CSV/JSON/Parquet for integration with other tools
-
-This 2025 documentation was later superseded by the revised
-single-table/properties JSON design above.
-
-**2026-07-01**: Revised implementation completed
+**2026-07-01**: DuckDB serialization implemented
 
 - Updated `repo_parser/outputs.py` to match the narrowed design:
   - Single `resources` table only

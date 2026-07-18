@@ -173,7 +173,7 @@ def test_to_duckdb_replace_existing_table(tmp_path):
     ]
 
 
-def test_to_duckdb_append_requires_missing_table(tmp_path):
+def test_to_duckdb_replace_false_fails_when_table_exists(tmp_path):
     db_path = tmp_path / "repo.duckdb"
     root = _resource("repo", tmp_path / "repo", type="repo")
 

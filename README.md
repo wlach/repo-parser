@@ -65,7 +65,7 @@ con.close()
 
 | Column          | Type      | Description                                                              |
 | --------------- | --------- | ------------------------------------------------------------------------ |
-| `path`          | VARCHAR   | Primary key: source path relative to scanned root, `.` for root resource |
+| `path`          | VARCHAR   | Primary key: source path relative to the scanned root, `.` for root resource |
 | `parent_path`   | VARCHAR   | Foreign key to parent resource path, NULL for root                       |
 | `name`          | VARCHAR   | Resource name (e.g., "auth-service", "README.md")                       |
 | `type`          | VARCHAR   | Resource type: 'repo', 'language', 'service', 'library', 'file'          |

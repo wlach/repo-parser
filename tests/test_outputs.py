@@ -220,11 +220,11 @@ def test_to_duckdb_with_example_repo(tmp_path):
             """
             SELECT path, parent_path, properties
             FROM resources
-            WHERE path = 'example/repo/README.md'
+            WHERE path = 'README.md'
             """
         ).fetchone()
 
     assert readme is not None
-    assert readme[0] == "example/repo/README.md"
+    assert readme[0] == "README.md"
     assert readme[1] == "."
     assert json.loads(readme[2]) == {"title": "README.md"}

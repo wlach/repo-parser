@@ -29,11 +29,12 @@ def _scan(
     repo: git.Repo,
 ) -> Dir:
     repo_root = Path(repo.working_dir).absolute()
+    scan_root = path.absolute()
     rel_path = path.absolute().relative_to(repo_root)
 
     # return indexed files, filtered by subtree. resulting filepaths will all
     # be relative to the repository root.
-    dirs = {repo_root: Dir(path=repo_root, files=[], dirs=[])}
+    dirs = {scan_root: Dir(path=scan_root, files=[], dirs=[])}
     result = repo.git.ls_files("--exclude-standard", rel_path)
 
     for p in result.splitlines():
@@ -59,11 +60,11 @@ def _scan(
 
         dirs[parent] = d
 
-    # Reverse depth first merge and fill in missing directories.  dirs is
-    # current a bunch of dangling Dir references, each have no dir entries
-    # itself. So this loop joins them all together into the tree. In addtion it
+    # Reverse depth first merge and fill in missing directories. dirs is
+    # currently a bunch of dangling Dir references, each with no dir entries
+    # itself. This loop joins them together into the tree. In addition, it
     # fills in any missing Dir entries of parents that did not have a direct
-    # child file match any processors
+    # child file match any processors.
     visited: set[Path] = set()
     dir_paths = list(dirs.keys())
     while dir_paths:
@@ -72,7 +73,7 @@ def _scan(
             continue
         visited.add(d)
 
-        if d.absolute() == repo_root:
+        if d.absolute() == scan_root:
             continue
 
         parent = dirs.get(d.parent, Dir(path=d.parent, files=[], dirs=[]))
@@ -80,7 +81,32 @@ def _scan(
         dirs[d.parent] = parent
         dir_paths.append(parent.path)
 
-    return dirs[repo_root]
+    return dirs[scan_root]
+
+
+def _merge_subdir_tree(root: Dir, tree: Dir) -> None:
+    relative_parts = tree.path.relative_to(root.path).parts
+    if not relative_parts:
+        root.files.extend(tree.files)
+        root.dirs.extend(tree.dirs)
+        return
+
+    current = root
+    for part in relative_parts[:-1]:
+        child_path = current.path / part
+        child = next((d for d in current.dirs if d.path == child_path), None)
+        if child is None:
+            child = Dir(path=child_path, files=[], dirs=[])
+            current.dirs.append(child)
+        current = child
+
+    existing = next((d for d in current.dirs if d.path == tree.path), None)
+    if existing is None:
+        current.dirs.append(tree)
+        return
+
+    existing.files.extend(tree.files)
+    existing.dirs.extend(tree.dirs)
 
 
 def scan(
@@ -111,8 +137,7 @@ def scan(
     path = path.resolve()
     # if subdirs, just scan each one and return the results
     if subdirs:
-        repo_root = Path(repo.working_dir).absolute()
-        dir = Dir(path=repo_root, files=[], dirs=[])
+        dir = Dir(path=path, files=[], dirs=[])
         for subdir in subdirs:
             tree = _scan(
                 path / subdir,
@@ -120,8 +145,7 @@ def scan(
                 ignore_patterns or [],
                 repo,
             )
-            dir.files += tree.files
-            dir.dirs += tree.dirs
+            _merge_subdir_tree(dir, tree)
         return dir, repo
 
     return _scan(
